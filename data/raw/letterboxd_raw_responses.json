@@ -947,5 +947,45 @@
     "imdb_id": "tt0892318",
     "tmdb_id": 37056,
     "found": true
+  },
+  "movie:level 16:2018": {
+    "status": 200,
+    "movie_url": "https://letterboxd.com/film/level-16/",
+    "rating_value": 2.97,
+    "rating_count": 60993,
+    "likes_count": 268,
+    "imdb_id": "tt4006302",
+    "tmdb_id": 548066,
+    "found": true
+  },
+  "movie:love don't cost a thing:2003": {
+    "status": 200,
+    "movie_url": "https://letterboxd.com/film/love-dont-cot-a-thing/",
+    "rating_value": 3.2,
+    "rating_count": 33757,
+    "likes_count": 1600,
+    "imdb_id": "tt0337592",
+    "tmdb_id": 21542,
+    "found": true
+  },
+  "movie:love in a puff:2010": {
+    "status": 200,
+    "movie_url": "https://letterboxd.com/film/love-in-a-puff/",
+    "rating_value": 3.62,
+    "rating_count": 3075,
+    "likes_count": 23,
+    "imdb_id": "tt1602479",
+    "tmdb_id": 41993,
+    "found": true
+  },
+  "movie:mars attacks!:1996": {
+    "status": 200,
+    "movie_url": "https://letterboxd.com/film/mars-attacks/",
+    "rating_value": 3.26,
+    "rating_count": 298287,
+    "likes_count": 1500,
+    "imdb_id": "tt0116996",
+    "tmdb_id": 75,
+    "found": true
   }
 }

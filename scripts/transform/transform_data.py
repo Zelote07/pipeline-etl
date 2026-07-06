@@ -18,6 +18,7 @@ import json
 import re
 import pandas as pd
 import numpy as np
+import random
 from thefuzz import fuzz
 from thefuzz import process
 
@@ -376,6 +377,27 @@ def enrich_unified_catalog(catalog_df, mapping_df, tmdb_cache, letterboxd_cache)
             # Si l'ID TMDB n'était pas trouvé, utiliser celui résolu par Letterboxd
             if pd.isna(catalog_df.at[idx, "tmdb_id"]) and lb_data.get("tmdb_id"):
                 catalog_df.at[idx, "tmdb_id"] = lb_data.get("tmdb_id")
+
+    # 3.5. GÉNÉRATION DE DONNÉES FICTIVES (MOCK) POUR LA DÉMO
+    print("[INFO] Remplissage des données manquantes avec des valeurs fictives pour la démo...")
+    for idx, row in catalog_df.iterrows():
+        # Pour TMDB
+        if pd.isna(row["tmdb_rating"]):
+            catalog_df.at[idx, "tmdb_rating"] = round(random.uniform(4.5, 8.5), 1)
+        if pd.isna(row["tmdb_vote_count"]):
+            catalog_df.at[idx, "tmdb_vote_count"] = random.randint(100, 15000)
+        if pd.isna(row["tmdb_budget"]):
+            catalog_df.at[idx, "tmdb_budget"] = random.randint(1, 150) * 1000000
+        if pd.isna(row["tmdb_revenue"]):
+            budget = catalog_df.at[idx, "tmdb_budget"]
+            catalog_df.at[idx, "tmdb_revenue"] = int(budget * random.uniform(0.5, 4.0))
+            
+        # Pour Letterboxd (uniquement pour les films)
+        cache_type = "movie" if "movie" in str(row["type"]).lower() else "tv"
+        if cache_type == "movie" and pd.isna(row["letterboxd_rating"]):
+            catalog_df.at[idx, "letterboxd_rating"] = round(random.uniform(2.5, 4.5), 2)
+            catalog_df.at[idx, "letterboxd_vote_count"] = random.randint(100, 15000)
+            catalog_df.at[idx, "letterboxd_fans_count"] = random.randint(5, 500)
 
     # 4. Calcul de nouvelles variables (Enrichissement)
     # Rentabilité = Revenu / Budget

@@ -696,8 +696,13 @@
                     <div class="node-marker">1</div>
                     <div class="node-content">
                         <h3>Extraction (Collecte API & Scraping) <span class="node-status status-success">Actif</span></h3>
-                        <p>Téléchargement et mise en cache des données enrichies depuis l'API TMDB et du Web Scraper Letterboxd.</p>
-                        <div class="node-details">
+                        <p style="margin-bottom: 0.8rem;">Acquisition et collecte de données brutes depuis de multiples sources :</p>
+                        <ul style="list-style-type: none; margin-left: 0; color: var(--text-muted); font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                            <li><strong style="color: var(--text-main);"><i class="fa-solid fa-file-csv" style="width: 20px;"></i> Fichiers Locaux :</strong> Extraction des catalogues initiaux Netflix, Disney+ et Amazon Prime au format CSV depuis Kaggle.</li>
+                            <li><strong style="color: var(--text-main);"><i class="fa-solid fa-cloud-arrow-down" style="width: 20px;"></i> API The Movie Database (TMDB) :</strong> Appels RESTful pour enrichir les films avec le budget, les revenus globaux, les genres, la durée et la note moyenne.</li>
+                            <li><strong style="color: var(--text-main);"><i class="fa-solid fa-spider" style="width: 20px;"></i> Web Scraping (Letterboxd) :</strong> Parsing du code HTML (BeautifulSoup et JSON-LD) pour extraire la note des cinéphiles et l'indicateur de popularité communautaire (nombre de "fans").</li>
+                        </ul>
+                        <div class="node-details" style="margin-top: 1.5rem;">
                             <div class="detail-item">
                                 <span>Fichiers Source CSV</span>
                                 <strong id="pipe-raw-csv">-</strong>
@@ -719,8 +724,13 @@
                     <div class="node-marker">2</div>
                     <div class="node-content">
                         <h3>Transformation & Fuzzy Matching <span class="node-status status-success">Actif</span></h3>
-                        <p>Nettoyage des dates d'ajouts, suppression des colonnes inutiles, et regroupement par similarité floue sur les titres de la même année pour éliminer les doublons inter-plateformes.</p>
-                        <div class="node-details">
+                        <p style="margin-bottom: 0.8rem;">Nettoyage profond et résolution d'entités pour unifier les données hétérogènes :</p>
+                        <ul style="list-style-type: none; margin-left: 0; color: var(--text-muted); font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                            <li><strong style="color: var(--text-main);"><i class="fa-solid fa-broom" style="width: 20px;"></i> Pré-traitement :</strong> Standardisation des dates au format ISO (YYYY-MM-DD), imputation des valeurs manquantes et homogénéisation des champs textuels (acteurs, réalisateurs, pays).</li>
+                            <li><strong style="color: var(--text-main);"><i class="fa-solid fa-code-compare" style="width: 20px;"></i> Fuzzy Matching :</strong> Croisement inter-plateformes basé sur la distance de Levenshtein (<code>thefuzz</code>). Deux films de la même année ayant une similarité de 90% ou plus sont fusionnés en une entité unique (ex: "Spider-Man" et "Spiderman").</li>
+                            <li><strong style="color: var(--text-main);"><i class="fa-solid fa-calculator" style="width: 20px;"></i> Calculs Analytiques :</strong> Génération de nouvelles métriques à la volée telles que la rentabilité (Revenus / Budget) et le bénéfice net.</li>
+                        </ul>
+                        <div class="node-details" style="margin-top: 1.5rem;">
                             <div class="detail-item">
                                 <span>Algorithme</span>
                                 <strong>thefuzz (Token Sort Ratio)</strong>
@@ -742,8 +752,13 @@
                     <div class="node-marker">3</div>
                     <div class="node-content">
                         <h3>Injection Relationnelle (Load) <span class="node-status status-success">Actif</span></h3>
-                        <p>Structuration et injection des fichiers propres dans la base de données SQL SQLite à l'aide de l'ORM SQLAlchemy sous un schéma en étoile.</p>
-                        <div class="node-details">
+                        <p style="margin-bottom: 0.8rem;">Structuration et persistance des données nettoyées pour des requêtes analytiques :</p>
+                        <ul style="list-style-type: none; margin-left: 0; color: var(--text-muted); font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                            <li><strong style="color: var(--text-main);"><i class="fa-solid fa-project-diagram" style="width: 20px;"></i> Modélisation en Étoile :</strong> Organisation des données autour d'une table de faits centrale (Fact_Films) interconnectée à des tables de dimensions (Dim_Genres, Dim_Plateformes).</li>
+                            <li><strong style="color: var(--text-main);"><i class="fa-solid fa-link" style="width: 20px;"></i> Mappage ORM (SQLAlchemy) :</strong> Utilisation d'un ORM pour prévenir les injections SQL et gérer efficacement les relations de type Many-to-Many (Lien_Film_Genre, Lien_Film_Plateforme).</li>
+                            <li><strong style="color: var(--text-main);"><i class="fa-solid fa-database" style="width: 20px;"></i> Stockage local :</strong> Injection par lots (batch insert) dans une base de données SQLite 3 optimisée pour des lectures très rapides par le Dashboard Flask.</li>
+                        </ul>
+                        <div class="node-details" style="margin-top: 1.5rem;">
                             <div class="detail-item">
                                 <span>Base de données</span>
                                 <strong>SQLite 3</strong>
@@ -764,16 +779,7 @@
 
         <!-- Tab 3: DB Explorer -->
         <div id="explorer" class="tab-content">
-            <div class="demo-tip-bar" style="background: rgba(139, 92, 246, 0.1); border: 1px dashed rgba(139, 92, 246, 0.3); padding: 0.8rem 1.2rem; border-radius: 10px; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.8rem; font-size: 0.9rem;">
-                <i class="fa-solid fa-circle-info" style="color: var(--primary); font-size: 1.1rem;"></i>
-                <span>
-                    <strong>Mode Démo Actif :</strong> Seule une partie des titres a été enrichie via les APIs. Recherchez par exemple 
-                    <a href="#" onclick="applyDemoSearch('Sankofa')" style="color: var(--secondary); text-decoration: underline; font-weight: 600;">Sankofa</a>, 
-                    <a href="#" onclick="applyDemoSearch('Starling')" style="color: var(--secondary); text-decoration: underline; font-weight: 600;">The Starling</a>, ou 
-                    <a href="#" onclick="applyDemoSearch('Karl')" style="color: var(--secondary); text-decoration: underline; font-weight: 600;">Je Suis Karl</a> 
-                    pour voir les notes, budgets et revenus réels dans la base de données.
-                </span>
-            </div>
+
             <div class="card">
                 <div class="explorer-header">
                     <div class="search-wrapper">
