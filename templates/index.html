@@ -975,12 +975,21 @@
         }
 
         // Explorer Table Logic
+        let currentExplorerFetch = null;
+
         function loadExplorerData() {
             const query = document.getElementById('search-bar').value;
             const platform = document.getElementById('platform-filter').value;
             const genre = document.getElementById('genre-filter').value;
 
-            fetch(`/api/titles?page=${currentPage}&search=${encodeURIComponent(query)}&platform=${platform}&genre=${encodeURIComponent(genre)}`)
+            if (currentExplorerFetch) {
+                currentExplorerFetch.abort();
+            }
+            currentExplorerFetch = new AbortController();
+
+            fetch(`/api/titles?page=${currentPage}&search=${encodeURIComponent(query)}&platform=${platform}&genre=${encodeURIComponent(genre)}`, {
+                signal: currentExplorerFetch.signal
+            })
                 .then(res => res.json())
                 .then(data => {
                     totalPages = data.total_pages;
@@ -1027,7 +1036,10 @@
                         `;
                     });
                 })
-                .catch(err => console.error("Erreur Explorer API:", err));
+                .catch(err => {
+                    if (err.name === 'AbortError') return;
+                    console.error("Erreur Explorer API:", err);
+                });
         }
 
         function handleSearch() {
