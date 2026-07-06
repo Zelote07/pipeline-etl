@@ -13,11 +13,11 @@ __pycache__/
 .env
 
 # Data files (excluding .gitkeep so directories are tracked)
-data/raw/*
-!data/raw/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
-
+# data/raw/*
+# !data/raw/.gitkeep
+# data/processed/*
+# !data/processed/.gitkeep
+*.db
 # IDEs and Editors
 .vscode/
 .idea/
