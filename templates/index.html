@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipeline ETL - Supervision & Visualisation</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: rgba(17, 24, 39, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --primary: #8b5cf6;
+            --primary-glow: rgba(139, 92, 246, 0.3);
+            --secondary: #06b6d4;
+            --secondary-glow: rgba(6, 182, 212, 0.3);
+            --accent: #ec4899;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --card-radius: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(6, 182, 212, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Layout */
+        header {
+            background: rgba(11, 15, 25, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.2rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #a78bfa 0%, #22d3ee 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo i {
+            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.8rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 4px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--text-main);
+            background: linear-gradient(135deg, var(--primary) 0%, rgba(139, 92, 246, 0.6) 100%);
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Container & Grid Elements */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .kpi-info h3 {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-info p {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .kpi-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .kpi-card.purple .kpi-icon {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--primary);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+        }
+
+        .kpi-card.cyan .kpi-icon {
+            background: rgba(6, 182, 212, 0.15);
+            color: var(--secondary);
+            border: 1px solid rgba(6, 182, 212, 0.25);
+        }
+
+        .kpi-card.emerald .kpi-icon {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+
+        .kpi-card.amber .kpi-icon {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+        }
+
+        /* Charts section */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.2rem;
+        }
+
+        .card-header h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .card-header h2 i {
+            color: var(--primary);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 280px;
+        }
+
+        /* Pipeline Visualizer */
+        .pipeline-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            position: relative;
+            padding: 1rem 0;
+        }
+
+        .pipeline-flow::before {
+            content: '';
+            position: absolute;
+            left: 28px;
+            top: 2rem;
+            bottom: 2rem;
+            width: 3px;
+            background: linear-gradient(to bottom, var(--secondary) 0%, var(--primary) 50%, var(--accent) 100%);
+            z-index: 1;
+        }
+
+        .pipeline-node {
+            display: flex;
+            gap: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .node-marker {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            border: 2px solid;
+            background: var(--bg-color);
+        }
+
+        .pipeline-node:nth-child(1) .node-marker {
+            border-color: var(--secondary);
+            color: var(--secondary);
+            box-shadow: 0 0 15px var(--secondary-glow);
+        }
+
+        .pipeline-node:nth-child(2) .node-marker {
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .pipeline-node:nth-child(3) .node-marker {
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 15px rgba(236, 72, 153, 0.3);
+        }
+
+        .node-content {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+            padding: 1.5rem;
+            flex: 1;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .node-content h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.6rem;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .node-status {
+            font-size: 0.8rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-success {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+
+        .node-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .detail-item {
+            background: rgba(255,255,255,0.02);
+            padding: 0.8rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .detail-item span {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.2rem;
+        }
+
+        .detail-item strong {
+            font-size: 1rem;
+            color: var(--text-main);
+        }
+
+        /* Database Explorer Table */
+        .explorer-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.2rem;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-wrapper i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .filter-wrapper {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .select-filter {
+            padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-main);
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .select-filter:focus {
+            border-color: var(--primary);
+        }
+
+        .select-filter option {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background: rgba(255,255,255,0.02);
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255,255,255,0.01);
+        }
+
+        /* Badges platform */
+        .platform-badges {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .badge-platform {
+            font-size: 0.75rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .badge-netflix {
+            background: rgba(229, 9, 20, 0.15);
+            color: #e50914;
+            border: 1px solid rgba(229, 9, 20, 0.25);
+        }
+
+        .badge-amazon {
+            background: rgba(26, 156, 219, 0.15);
+            color: #1a9cdb;
+            border: 1px solid rgba(26, 156, 219, 0.25);
+        }
+
+        .badge-disney {
+            background: rgba(10, 50, 150, 0.15);
+            color: #3b82f6;
+            border: 1px solid rgba(10, 50, 150, 0.25);
+        }
+
+        .badge-rating {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+
+        .badge-rating.tmdb {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .badge-rating.letterboxd {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-info {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .page-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .page-btn {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: rgba(255,255,255,0.07);
+            border-color: var(--primary);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: auto;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <i class="fa-solid fa-database"></i>
+            <span>PIPELINE ETL</span>
+        </div>
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('dashboard')">
+                <i class="fa-solid fa-chart-pie"></i> Dashboard
+            </button>
+            <button class="tab-btn" onclick="switchTab('pipeline')">
+                <i class="fa-solid fa-diagram-project"></i> Pipeline Monitor
+            </button>
+            <button class="tab-btn" onclick="switchTab('explorer')">
+                <i class="fa-solid fa-folder-open"></i> DB Explorer
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Tab 1: Dashboard -->
+        <div id="dashboard" class="tab-content active">
+            <div class="kpi-grid">
+                <div class="kpi-card purple">
+                    <div class="kpi-info">
+                        <h3>Titres Unifiés</h3>
+                        <p id="kpi-total-movies">-</p>
+                    </div>
+                    <div class="kpi-icon">
+                        <i class="fa-solid fa-film"></i>
+                    </div>
+                </div>
+                <div class="kpi-card cyan">
+                    <div class="kpi-info">
+                        <h3>Genres Unifiés</h3>
+                        <p id="kpi-total-genres">-</p>
+                    </div>
+                    <div class="kpi-icon">
+                        <i class="fa-solid fa-tags"></i>
+                    </div>
+                </div>
+                <div class="kpi-card emerald">
+                    <div class="kpi-info">
+                        <h3>Budget Total</h3>
+                        <p id="kpi-total-budget">-</p>
+                    </div>
+                    <div class="kpi-icon">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                </div>
+                <div class="kpi-card amber">
+                    <div class="kpi-info">
+                        <h3>Revenu Total</h3>
+                        <p id="kpi-total-revenue">-</p>
+                    </div>
+                    <div class="kpi-icon">
+                        <i class="fa-solid fa-sack-dollar"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-tv"></i> Répartition Plateformes</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="platformChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-list-check"></i> Top 10 Genres les Plus Répandus</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="genreChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Pipeline Monitor -->
+        <div id="pipeline" class="tab-content">
+            <div class="pipeline-flow">
+                <!-- Node 1 -->
+                <div class="pipeline-node">
+                    <div class="node-marker">1</div>
+                    <div class="node-content">
+                        <h3>Extraction (Collecte API & Scraping) <span class="node-status status-success">Actif</span></h3>
+                        <p>Téléchargement et mise en cache des données enrichies depuis l'API TMDB et du Web Scraper Letterboxd.</p>
+                        <div class="node-details">
+                            <div class="detail-item">
+                                <span>Fichiers Source CSV</span>
+                                <strong id="pipe-raw-csv">-</strong>
+                            </div>
+                            <div class="detail-item">
+                                <span>Cache API TMDB</span>
+                                <strong id="pipe-tmdb-cache">-</strong>
+                            </div>
+                            <div class="detail-item">
+                                <span>Cache Scraper Letterboxd</span>
+                                <strong id="pipe-letterboxd-cache">-</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Node 2 -->
+                <div class="pipeline-node">
+                    <div class="node-marker">2</div>
+                    <div class="node-content">
+                        <h3>Transformation & Fuzzy Matching <span class="node-status status-success">Actif</span></h3>
+                        <p>Nettoyage des dates d'ajouts, suppression des colonnes inutiles, et regroupement par similarité floue sur les titres de la même année pour éliminer les doublons inter-plateformes.</p>
+                        <div class="node-details">
+                            <div class="detail-item">
+                                <span>Algorithme</span>
+                                <strong>thefuzz (Token Sort Ratio)</strong>
+                            </div>
+                            <div class="detail-item">
+                                <span>Seuil de similarité</span>
+                                <strong>&gt;= 90 %</strong>
+                            </div>
+                            <div class="detail-item">
+                                <span>Titres fusionnés</span>
+                                <strong id="pipe-merged-count">-</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Node 3 -->
+                <div class="pipeline-node">
+                    <div class="node-marker">3</div>
+                    <div class="node-content">
+                        <h3>Injection Relationnelle (Load) <span class="node-status status-success">Actif</span></h3>
+                        <p>Structuration et injection des fichiers propres dans la base de données SQL SQLite à l'aide de l'ORM SQLAlchemy sous un schéma en étoile.</p>
+                        <div class="node-details">
+                            <div class="detail-item">
+                                <span>Base de données</span>
+                                <strong>SQLite 3</strong>
+                            </div>
+                            <div class="detail-item">
+                                <span>Modélisation</span>
+                                <strong>Schéma en Étoile (Star Schema)</strong>
+                            </div>
+                            <div class="detail-item">
+                                <span>Chemin du fichier</span>
+                                <strong>data/processed/pipeline_etl.db</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: DB Explorer -->
+        <div id="explorer" class="tab-content">
+            <div class="demo-tip-bar" style="background: rgba(139, 92, 246, 0.1); border: 1px dashed rgba(139, 92, 246, 0.3); padding: 0.8rem 1.2rem; border-radius: 10px; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.8rem; font-size: 0.9rem;">
+                <i class="fa-solid fa-circle-info" style="color: var(--primary); font-size: 1.1rem;"></i>
+                <span>
+                    <strong>Mode Démo Actif :</strong> Seule une partie des titres a été enrichie via les APIs. Recherchez par exemple 
+                    <a href="#" onclick="applyDemoSearch('Sankofa')" style="color: var(--secondary); text-decoration: underline; font-weight: 600;">Sankofa</a>, 
+                    <a href="#" onclick="applyDemoSearch('Starling')" style="color: var(--secondary); text-decoration: underline; font-weight: 600;">The Starling</a>, ou 
+                    <a href="#" onclick="applyDemoSearch('Karl')" style="color: var(--secondary); text-decoration: underline; font-weight: 600;">Je Suis Karl</a> 
+                    pour voir les notes, budgets et revenus réels dans la base de données.
+                </span>
+            </div>
+            <div class="card">
+                <div class="explorer-header">
+                    <div class="search-wrapper">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="search-bar" class="search-input" placeholder="Rechercher par titre de film..." oninput="handleSearch()">
+                    </div>
+                    <div class="filter-wrapper">
+                        <select id="platform-filter" class="select-filter" onchange="handleFilter()">
+                            <option value="">Toutes les plateformes</option>
+                            <option value="netflix">Netflix</option>
+                            <option value="amazon">Prime Video</option>
+                            <option value="disney">Disney+</option>
+                        </select>
+                        <select id="genre-filter" class="select-filter" onchange="handleFilter()">
+                            <option value="">Tous les genres</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Titre</th>
+                                <th>Type</th>
+                                <th>Année</th>
+                                <th>Plateformes</th>
+                                <th>Note TMDB</th>
+                                <th>Note LB</th>
+                                <th>Budget</th>
+                                <th>Revenu</th>
+                            </tr>
+                        </thead>
+                        <tbody id="movie-table-body">
+                            <tr>
+                                <td colspan="9" style="text-align: center; color: var(--text-muted);">Chargement des données...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination">
+                    <div class="page-info" id="page-info">
+                        Affichage de 0 à 0 sur 0 films
+                    </div>
+                    <div class="page-controls">
+                        <button class="page-btn" id="btn-prev" onclick="changePage(-1)" disabled>
+                            <i class="fa-solid fa-angle-left"></i> Précédent
+                        </button>
+                        <button class="page-btn" id="btn-next" onclick="changePage(1)" disabled>
+                            Suivant <i class="fa-solid fa-angle-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Pipeline ETL - Supervisé par Flask & SQLAlchemy. Conçu pour le projet Décisionnel.</p>
+    </footer>
+
+    <script>
+        let currentTab = 'dashboard';
+        let currentPage = 1;
+        let totalPages = 1;
+        let searchTimeout = null;
+        let platformChartInstance = null;
+        let genreChartInstance = null;
+
+        // Navigation
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Trouver le bouton activé par son événement
+            const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => btn.getAttribute('onclick').includes(tabId));
+            if (activeBtn) activeBtn.classList.add('active');
+            
+            document.getElementById(tabId).classList.add('active');
+            currentTab = tabId;
+
+            if (tabId === 'dashboard') {
+                loadDashboardData();
+            } else if (tabId === 'pipeline') {
+                loadPipelineData();
+            } else if (tabId === 'explorer') {
+                loadExplorerData();
+            }
+        }
+
+        // Chargement des données Dashboard
+        function loadDashboardData() {
+            fetch('/api/stats')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('kpi-total-movies').innerText = data.total_movies.toLocaleString();
+                    document.getElementById('kpi-total-genres').innerText = data.total_genres.toLocaleString();
+                    document.getElementById('kpi-total-budget').innerText = data.total_budget > 0 
+                        ? '$' + data.total_budget.toLocaleString() 
+                        : 'N/A';
+                    document.getElementById('kpi-total-revenue').innerText = data.total_revenue > 0 
+                        ? '$' + data.total_revenue.toLocaleString() 
+                        : 'N/A';
+
+                    // Update Genre Filter options
+                    const genreFilter = document.getElementById('genre-filter');
+                    genreFilter.innerHTML = '<option value="">Tous les genres</option>';
+                    data.genre_list.forEach(g => {
+                        genreFilter.innerHTML += `<option value="${g}">${g}</option>`;
+                    });
+
+                    // 1. Chart Platform
+                    const platCtx = document.getElementById('platformChart').getContext('2d');
+                    if (platformChartInstance) platformChartInstance.destroy();
+                    
+                    platformChartInstance = new Chart(platCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(data.platform_distribution),
+                            datasets: [{
+                                data: Object.values(data.platform_distribution),
+                                backgroundColor: ['#e50914', '#1a9cdb', '#3b82f6'],
+                                borderWeight: 1,
+                                borderColor: 'rgba(255,255,255,0.1)'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { color: '#9ca3af', font: { family: 'Outfit', size: 12 } }
+                                }
+                            }
+                        }
+                    });
+
+                    // 2. Chart Genres
+                    const genreCtx = document.getElementById('genreChart').getContext('2d');
+                    if (genreChartInstance) genreChartInstance.destroy();
+
+                    genreChartInstance = new Chart(genreCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: data.genre_distribution.map(x => x.name),
+                            datasets: [{
+                                label: 'Films par Genre',
+                                data: data.genre_distribution.map(x => x.count),
+                                backgroundColor: 'rgba(139, 92, 246, 0.65)',
+                                borderColor: '#8b5cf6',
+                                borderWidth: 1,
+                                borderRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: {
+                                    ticks: { color: '#9ca3af', font: { family: 'Outfit', size: 10 } },
+                                    grid: { display: false }
+                                },
+                                y: {
+                                    ticks: { color: '#9ca3af', font: { family: 'Outfit' } },
+                                    grid: { color: 'rgba(255,255,255,0.05)' }
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(err => console.error("Erreur Dashboard:", err));
+        }
+
+        // Chargement des données de Pipeline Monitor
+        function loadPipelineData() {
+            fetch('/api/pipeline')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('pipe-raw-csv').innerText = `${data.raw_csv_count} CSV (${data.raw_csv_size})`;
+                    document.getElementById('pipe-tmdb-cache').innerText = `${data.tmdb_cache_entries} entrées (${data.tmdb_cache_size})`;
+                    document.getElementById('pipe-letterboxd-cache').innerText = `${data.letterboxd_cache_entries} entrées (${data.letterboxd_cache_size})`;
+                    
+                    const mergedDiff = data.raw_total_rows - data.unified_total_rows;
+                    document.getElementById('pipe-merged-count').innerText = `${mergedDiff} doublons résolus (${data.unified_total_rows} uniques restants)`;
+                })
+                .catch(err => console.error("Erreur Pipeline stats:", err));
+        }
+
+        // Explorer Table Logic
+        function loadExplorerData() {
+            const query = document.getElementById('search-bar').value;
+            const platform = document.getElementById('platform-filter').value;
+            const genre = document.getElementById('genre-filter').value;
+
+            fetch(`/api/titles?page=${currentPage}&search=${encodeURIComponent(query)}&platform=${platform}&genre=${encodeURIComponent(genre)}`)
+                .then(res => res.json())
+                .then(data => {
+                    totalPages = data.total_pages;
+                    document.getElementById('page-info').innerText = `Affichage de ${(data.page-1)*50 + 1} à ${Math.min(data.page*50, data.total_count)} sur ${data.total_count} films`;
+                    
+                    document.getElementById('btn-prev').disabled = data.page <= 1;
+                    document.getElementById('btn-next').disabled = data.page >= data.total_pages;
+
+                    const tbody = document.getElementById('movie-table-body');
+                    tbody.innerHTML = '';
+
+                    if (data.titles.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Aucun film ne correspond à vos filtres.</td></tr>';
+                        return;
+                    }
+
+                    data.titles.forEach(movie => {
+                        // Badges platform
+                        let platBadges = '';
+                        if (movie.on_netflix) platBadges += '<span class="badge-platform badge-netflix">Netflix</span> ';
+                        if (movie.on_amazon_prime) platBadges += '<span class="badge-platform badge-amazon">Prime</span> ';
+                        if (movie.on_disney_plus) platBadges += '<span class="badge-platform badge-disney">Disney+</span> ';
+
+                        // Ratings badges
+                        let tmdbBadge = movie.tmdb_rating ? `<span class="badge-rating tmdb"><i class="fa-solid fa-star"></i> ${movie.tmdb_rating.toFixed(1)}</span>` : '<span style="color: var(--text-muted)">-</span>';
+                        let lbBadge = movie.letterboxd_rating ? `<span class="badge-rating letterboxd"><i class="fa-solid fa-heart"></i> ${movie.letterboxd_rating.toFixed(2)}</span>` : '<span style="color: var(--text-muted)">-</span>';
+
+                        // Financial variables formatting
+                        let budget = movie.tmdb_budget ? '$' + movie.tmdb_budget.toLocaleString() : '<span style="color: var(--text-muted)">-</span>';
+                        let revenue = movie.tmdb_revenue ? '$' + movie.tmdb_revenue.toLocaleString() : '<span style="color: var(--text-muted)">-</span>';
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">${movie.film_id}</td>
+                                <td style="font-weight: 600;">${movie.title}</td>
+                                <td>${movie.type}</td>
+                                <td>${movie.release_year}</td>
+                                <td><div class="platform-badges">${platBadges}</div></td>
+                                <td>${tmdbBadge}</td>
+                                <td>${lbBadge}</td>
+                                <td style="font-family: monospace; font-size: 0.85rem;">${budget}</td>
+                                <td style="font-family: monospace; font-size: 0.85rem;">${revenue}</td>
+                            </tr>
+                        `;
+                    });
+                })
+                .catch(err => console.error("Erreur Explorer API:", err));
+        }
+
+        function handleSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentPage = 1;
+                loadExplorerData();
+            }, 300);
+        }
+
+        function handleFilter() {
+            currentPage = 1;
+            loadExplorerData();
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            loadExplorerData();
+        }
+
+        function applyDemoSearch(term) {
+            document.getElementById('search-bar').value = term;
+            currentPage = 1;
+            loadExplorerData();
+        }
+
+        // Init
+        window.onload = function() {
+            loadDashboardData();
+        };
+    </script>
+</body>
+</html>

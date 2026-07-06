@@ -1,0 +1,28 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache / compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local environment variables / secrets
+.env
+
+# Data files (excluding .gitkeep so directories are tracked)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp

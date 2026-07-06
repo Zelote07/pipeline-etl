@@ -1,0 +1,10 @@
+pandas
+requests
+sqlalchemy
+thefuzz
+python-Levenshtein
+python-dotenv
+psycopg2-binary
+beautifulsoup4
+lxml
+flask
